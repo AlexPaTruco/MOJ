@@ -1,0 +1,312 @@
+//<script>
+elgg.provide('elgg.admin');
+
+elgg.admin.init = function () {
+
+	// system messages do not fade in admin area, instead slide up when clicked
+	$('.elgg-system-messages li').stop(true);
+	$('.elgg-system-messages li').die('click');
+	$('.elgg-system-messages li').live('click', function() {
+		$(this).stop().slideUp('medium');
+	});
+
+	// draggable plugin reordering
+	$('#elgg-plugin-list > ul').sortable({
+		items:                'li:has(> .elgg-state-draggable)',
+		handle:               '.elgg-head',
+		forcePlaceholderSize: true,
+		placeholder:          'elgg-widget-placeholder',
+		opacity:              0.8,
+		revert:               500,
+		stop:                 elgg.admin.movePlugin
+	});
+
+	// in-line editing for custom profile fields.
+	// @note this requires jquery.jeditable plugin
+	$(".elgg-state-editable").editable(elgg.admin.editProfileField, {
+		type:   'text',
+		onblur: 'submit',
+		width:  '300px',
+		height: 'none',
+		style:  'display:inline;'
+	});
+
+	// draggable profile field reordering.
+	$('#elgg-profile-fields').sortable({
+		items: 'li',
+		handle: 'span.elgg-state-draggable',
+		stop: elgg.admin.moveProfileField
+	});
+
+	// admin notices delete ajax
+	$('a.elgg-admin-notice').click(elgg.admin.deleteNotice);
+
+	// disable checkboxes (readonly does not work for them)
+	$('input:checkbox.elgg-state-disabled').live('click', function() {return false;});
+
+	// disable simple cache compress settings if simple cache is off
+	$('[name=simplecache_enabled]').click(elgg.admin.simplecacheToggle);
+};
+
+/**
+ * Save the plugin order after a move event.
+ *
+ * @param {Object} e  Event object.
+ * @param {Object} ui jQueryUI object
+ * @return void
+ */
+elgg.admin.movePlugin = function(e, ui) {
+	// get guid from id like elgg-object-<guid>
+	var pluginGuid = ui.item.attr('id');
+	pluginGuid = pluginGuid.replace('elgg-object-', '');
+
+	elgg.action('admin/plugins/set_priority', {
+		data: {
+			plugin_guid: pluginGuid,
+			// we start at priority 1
+			priority: ui.item.index() + 1
+		},
+		success: function() {
+			// update plugins with priority dependences
+			var priorityDep = new RegExp(elgg.echo('ElggPlugin:Dependencies:Priority'));
+			ui.item.siblings().andSelf().each(function() {
+				if (priorityDep.test($(this).find('.elgg-dependency-requires').text())) {
+					elgg.admin.updatePluginView($(this));
+				}
+			});
+		}
+	});
+};
+
+/**
+ * Update the plugin view.
+ *
+ * @param {Object} pluginView Plugin view element to update
+ * @return void
+ */
+elgg.admin.updatePluginView = function(pluginView) {
+	// get guid from id like elgg-object-<guid>
+	var pluginGuid = pluginView.attr('id');
+	pluginGuid = pluginGuid.replace('elgg-object-', '');
+
+	elgg.get({
+		url: elgg.config.wwwroot + "ajax/view/object/plugin/full",
+		dataType: "html",
+		cache: false,
+		data: {
+			guid: pluginGuid,
+			display_reordering: true
+		},
+		success: function(htmlData) {
+			if (htmlData.length > 0) {
+				pluginView.html(htmlData);
+			}
+		}
+	});
+}
+
+/**
+ * In-line editing for custom profile fields
+ *
+ * @param string   value    The new value
+ * @param {Object} settings The settings used for editable
+ * @return void
+ */
+elgg.admin.editProfileField = function(value, settings) {
+	var id = $(this).attr('id');
+	id = id.replace('elgg-profile-field-', '');
+
+	var data = {
+		id:    id,
+		label: value
+	};
+
+	elgg.action('profile/fields/edit', data);
+	return value;
+};
+
+/**
+ * Save the plugin profile order after a move event.
+ *
+ * @param {Object} e  Event object.
+ * @param {Object} ui jQueryUI object
+ * @return void
+ */
+elgg.admin.moveProfileField = function(e, ui) {
+	var orderArr = $('#elgg-profile-fields').sortable('toArray');
+	var orderStr = orderArr.join(',');
+
+	elgg.action('profile/fields/reorder', {
+		fieldorder: orderStr
+	});
+};
+
+/**
+ * Fires the ajax action to delete the admin notice then hides the notice.
+ *
+ * @return void
+ */
+elgg.admin.deleteNotice = function(e) {
+	e.preventDefault();
+	var $container = $(this).closest('p');
+	
+	elgg.action($(this).attr('href'), {
+		success: function(json) {
+			$container.slideUp('medium');
+		}
+	});
+};
+
+/**
+ * Toggles the display of the compression settings for simplecache
+ *
+ * @return void
+ */
+elgg.admin.simplecacheToggle = function() {
+	// when the checkbox is disabled, do not toggle the compression checkboxes
+	if (!$(this).hasClass('elgg-state-disabled')) {
+		var names = ['simplecache_minify_js', 'simplecache_minify_css'];
+		for (var i = 0; i < names.length; i++) {
+			var $input = $('input[type!=hidden][name="' + names[i] + '"]');
+			if ($input.length) {
+				$input.parent().toggleClass('elgg-state-disabled');
+			}
+		}
+	}
+};
+
+elgg.register_hook_handler('init', 'system', elgg.admin.init, 1000);
+//<script>
+elgg.provide("elgg.profile_manager");
+
+elgg.profile_manager.init_admin = function() {
+	elgg.profile_manager.filter_custom_fields(0);
+	$('#custom_fields_ordering').sortable({
+  		update: function(event, ui) {
+  			elgg.profile_manager.reorder_custom_fields();
+   		},
+   		opacity: 0.6,
+   		tolerance: 'pointer',
+   		items: 'li'
+	});
+
+	$('#custom_fields_category_list_custom .elgg-list').sortable({
+		update: function(event, ui) {
+			elgg.profile_manager.reorder_categories();
+   		},
+		opacity: 0.6,
+		tolerance: 'pointer',
+		items: 'li',
+		handle: '.elgg-icon-drag-arrow'
+	});
+
+	$('#custom_profile_field_category_0, #custom_fields_category_list_custom .elgg-item').droppable({
+		accept: "#custom_fields_ordering .elgg-item",
+		hoverClass: 'droppable-hover',
+		tolerance: 'pointer',
+		drop: function(event, ui) {
+			var dropped_on = $(this).attr("id");
+			var dragged_field = $(ui.draggable);
+			elgg.profile_manager.change_field_category(dragged_field, dropped_on);
+		}
+	});
+
+	$(".elgg-icon-profile-manager-user-summary-config-add").live("click", function(){
+		$("#profile-manager-user-summary-config-options").clone().insertBefore($(this)).removeAttr("id").attr("name", $(this).parent().attr("rel") + "[]");
+	});
+
+	$(".profile-manager-user-summary-config-options-delete").live("click", function(){
+		$(this).parent().remove();
+	});
+}
+
+elgg.profile_manager.toggle_option = function(field, guid) {
+	elgg.action('profile_manager/toggleOption', {
+		data: {
+			guid: guid,
+			field: field
+		},
+		success: function(data) {
+			if(data == true){
+				$("#" + field + "_" + guid).toggleClass("field_config_metadata_option_disabled field_config_metadata_option_enabled");
+			} else {
+				alert(elgg.echo("profile_manager:actions:toggle_option:error:unknown"));
+			}
+		},
+	});
+}
+
+elgg.profile_manager.reorder_custom_fields = function() {
+	elgg.action('profile_manager/reorder?' + $('#custom_fields_ordering').sortable('serialize'));
+}
+
+elgg.profile_manager.reorder_categories = function() {
+	elgg.action('profile_manager/categories/reorder?' + $('#custom_fields_category_list_custom .elgg-list').sortable('serialize'));
+}
+
+elgg.profile_manager.remove_field = function(guid) {
+	if (confirm(elgg.echo("profile_manager:actions:delete:confirm"))) {
+		elgg.action('profile_manager/delete', {
+			data: {
+				guid: guid
+			},
+			success: function(data) {
+				if(data == true){
+					$('#custom_profile_field_' + guid).hide('slow').parent().remove();
+					elgg.profile_manager.reorder_custom_fields();
+				} else {
+					alert(elgg.echo("profile_manager:actions:delete:error:unknown"));
+				}
+			},
+		});
+	}
+}
+
+elgg.profile_manager.filter_custom_fields = function(category_guid) {
+	$("#custom_fields_ordering .elgg-item").hide();
+	$("#custom_fields_category_list_custom .custom_fields_category_selected").removeClass("custom_fields_category_selected");
+	if(category_guid === 0){
+		// show default
+		$("#custom_fields_ordering .custom_field[rel='']").parent().show();
+		$("#custom_profile_field_category_0").addClass("custom_fields_category_selected");
+	} else {
+		if(category_guid === undefined){
+			// show all
+			$("#custom_fields_ordering .custom_field").parent().show();
+			$("#custom_profile_field_category_all").addClass("custom_fields_category_selected");
+		} else {
+			//show selected category
+			$("#custom_fields_ordering .custom_field[rel='" + category_guid + "']").parent().show();
+			$("#custom_profile_field_category_" + category_guid).parent().addClass("custom_fields_category_selected");
+		}
+	}
+}
+
+elgg.profile_manager.change_field_type = function() {
+	var selectedType = $("#custom_fields_form select[name='metadata_type']").val();
+	
+	$("#custom_fields_form .custom_fields_form_field_option").attr("disabled", "disabled");
+	$("#custom_fields_form .field_option_enable_" + selectedType).removeAttr("disabled");
+}
+
+// categories
+elgg.profile_manager.change_field_category = function(field, category_guid) {
+	var field_guid = $(field).attr("id").replace("elgg-object-","");
+	category_guid = category_guid.replace("elgg-object-","").replace("custom_profile_field_category_", "");
+
+	$.post(elgg.security.addToken(elgg.get_site_url() + 'action/profile_manager/changeCategory?guid=' + field_guid + '&category_guid=' + category_guid), function(data){
+		if(data == 'true'){
+			if(category_guid == 0){
+				category_guid = "";
+			}
+			$(field).find(".custom_field").attr("rel", category_guid);
+			$(".custom_fields_category_selected a").click();
+				
+		} else {
+			alert(elgg.echo("profile_manager:actions:change_category:error:unknown"));
+		}
+	});
+}
+
+//register init hook
+elgg.register_hook_handler("init", "system", elgg.profile_manager.init_admin);

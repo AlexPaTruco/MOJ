@@ -1,0 +1,4 @@
+// <script>
+if (typeof require == "undefined") {
+	var require = {"baseUrl":"http:\/\/localhost\/elgg\/cache\/1427150857\/default\/js\/","paths":{"jquery.form":["http:\/\/localhost\/elgg\/vendors\/jquery\/jquery.form.min"],"ckeditor":["http:\/\/localhost\/elgg\/mod\/ckeditor\/vendors\/ckeditor\/ckeditor"],"jquery.ckeditor":["http:\/\/localhost\/elgg\/mod\/ckeditor\/vendors\/ckeditor\/adapters\/jquery"],"jquery.jstree":["http:\/\/localhost\/elgg\/mod\/developers\/vendors\/jsTree\/jquery.jstree"],"jquery.treeview":["http:\/\/localhost\/elgg\/mod\/pages\/vendors\/jquery-treeview\/jquery.treeview.min"]},"shim":{"jquery.form":{"deps":["jquery"],"exports":"jQuery.fn.ajaxForm"},"ckeditor":{"exports":"CKEDITOR"},"jquery.ckeditor":{"deps":["jquery","ckeditor"],"exports":"jQuery.fn.ckeditor"},"jquery.jstree":{"deps":["jquery"],"exports":"jQuery.fn.jstree"},"jquery.treeview":{"deps":["jquery"],"exports":"jQuery.fn.treeview"}}};
+}
