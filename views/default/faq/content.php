@@ -35,3 +35,16 @@ get a fair MOJ score. You can report a problem equivalence <a href="probequiv">h
 
 <br/>
 
+<h3>My Score is not correct. What's wrong?</h3>
+
+<p>The scoring system in MOJ is still a work in progress and some minor bugs may come up, we thank you for your patience.</p>
+
+<br/>
+
+<h3>How can I help on the development of MOJ?</h3>
+
+<p>See the code for yourself, all the source code is available on <a href="https://github.com/AlexPaTruco/MOJ">GitHub</a>.
+If you have any comments, bugs, ideas, suggestions that you need to report, please email us 
+		at <a href="mailto:feedback@moj.projectace.net">feedback@moj.projectace.net</a>.</p>
+
+<br/>

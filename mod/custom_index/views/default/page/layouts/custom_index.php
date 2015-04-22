@@ -32,15 +32,7 @@ $mod_params = array('class' => 'elgg-module-highlight');
 <?php
 // left column
 
-// Top box for login or welcome message
-if (elgg_is_logged_in()) {
-	$top_box = "<h2>" . elgg_echo("welcome") . " ";
-	$top_box .= elgg_get_logged_in_user_entity()->name;
-	$top_box .= "</h2>";
-} else {
-	$top_box = $vars['login'];
-}
-echo elgg_view_module('featured',  '', $top_box, $mod_params);
+
 
 ?>
 
@@ -64,6 +56,16 @@ if (elgg_is_active_plugin('groups')) {
 		<div class="elgg-inner pvm">
 <?php
 // right column
+
+// Top box for login or welcome message
+if (elgg_is_logged_in()) {
+	$top_box = "<h2>" . elgg_echo("welcome") . " ";
+	$top_box .= elgg_get_logged_in_user_entity()->name;
+	$top_box .= "</h2>";
+} else {
+	$top_box = $vars['login'];
+}
+echo elgg_view_module('featured',  '', $top_box, $mod_params);
 
 // a view for plugins to extend
 echo elgg_view("index/righthandside");
